@@ -4,7 +4,7 @@
 Классическая игра змейка, в которой необходимо поедать «яблоки» управляя «головой» растущей «змеи». 
 При этом нужно избегать препятствий, в том числе со своим «телом» и «хвостом».
 
-![the_snake](https://github.com/vasiliy-muravev/the_snake/raw/main/{path}/img.png)
+![the_snake](https://github.com/vasiliy-muravev/the_snake/raw/main/img.png)
 
 ## Запуск проекта
 В директории the_snake разверните и активируйте виртуальное окружение.

@@ -203,8 +203,6 @@ def main():
 
     apple = Apple()
     snake = Snake()
-    stone = Stone()
-    bad_food = BadFood()
 
     apple.randomize_position()
     while True:

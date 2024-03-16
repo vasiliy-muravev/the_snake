@@ -186,13 +186,19 @@ class BadFood(GameObject):
             (self.position[0], self.position[1]), self.body_color, surface
         )
 
-    def randomize_position(self, snake_positions, apple_position, stone_position):
+    def randomize_position(
+            self,
+            snake_positions,
+            apple_position,
+            stone_position
+    ):
         """Создать случайную позицию для плохой еды"""
         available_rects = []
         for row in range(SCREEN_WIDTH // GRID_SIZE):
             for col in range(SCREEN_HEIGHT // GRID_SIZE):
                 rect = (row * GRID_SIZE, col * GRID_SIZE)
-                if rect not in snake_positions and rect != apple_position and rect != stone_position:
+                if (rect not in snake_positions
+                        and rect != apple_position and rect != stone_position):
                     available_rects.append((row * GRID_SIZE, col * GRID_SIZE))
 
         self.position = choice(available_rects)
@@ -227,7 +233,11 @@ def main():
 
     apple.randomize_position(snake.positions)
     stone.randomize_position(snake.positions, apple.position)
-    bad_food.randomize_position(snake.positions, apple.position, stone.position)
+    bad_food.randomize_position(
+        snake.positions,
+        apple.position,
+        stone.position
+    )
 
     stone.draw(screen)
 
@@ -247,7 +257,11 @@ def main():
             apple.randomize_position(snake.positions)
 
         if snake.get_head_position() == bad_food.position:
-            bad_food.randomize_position(snake.positions, apple.position, stone.position)
+            bad_food.randomize_position(
+                snake.positions,
+                apple.position,
+                stone.position
+            )
 
             if len(snake.positions) > 1:
                 snake.positions.pop(0)

@@ -35,19 +35,27 @@ class GameObject:
     def __init__(self, body_color=None):
         self.position = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
         self.body_color = body_color
+        self.occupied = []
 
-    def draw(self, surface):
+    def draw(self):
         """Отрисовать"""
-        raise NotImplementedError
+        raise NotImplementedError(
+            'Определите метод draw в %s.' % (self.__class__.__name__))
 
     @staticmethod
-    def draw_rect(coordinates, color, surface, border=True):
+    def draw_rect(coordinates, color):
         """Отрисовать одну ячейку"""
         rect = pg.Rect(coordinates, (GRID_SIZE, GRID_SIZE))
-        pg.draw.rect(surface, color, rect)
+        pg.draw.rect(screen, color, rect)
 
-        if border:
-            pg.draw.rect(surface, BORDER_COLOR, rect, 1)
+        if color != BOARD_BACKGROUND_COLOR:
+            pg.draw.rect(screen, BORDER_COLOR, rect, 1)
+
+    def refresh_occupied(self, snake_position, *positions):
+        """Незанятые ячейки"""
+        self.occupied = [pos for pos in snake_position]
+        for arg in positions:
+            self.occupied.append(arg)
 
 
 class Apple(GameObject):
@@ -58,22 +66,32 @@ class Apple(GameObject):
     def __init__(self, body_color=APPLE_COLOR):
         super().__init__(body_color)
 
-    def draw(self, surface):
+    def draw(self):
         """Отрисовать"""
-        GameObject.draw_rect(
-            (self.position[0], self.position[1]), self.body_color, surface
+        self.draw_rect(
+            (self.position[0], self.position[1]), self.body_color
         )
 
-    def randomize_position(self, snake_positions):
+    def randomize_position(self):
         """Создать новое яблоко"""
+        # Текущий вариант
         available_rects = []
         for row in range(SCREEN_WIDTH // GRID_SIZE):
             for col in range(SCREEN_HEIGHT // GRID_SIZE):
                 rect = (row * GRID_SIZE, col * GRID_SIZE)
-                if rect not in snake_positions:
+                if rect not in self.occupied:
                     available_rects.append((row * GRID_SIZE, col * GRID_SIZE))
 
         self.position = choice(available_rects)
+
+        # Рекурсивный вариант, который вы предлагаете
+        # while True:
+        #     self.position = (
+        #         randint(0, GRID_WIDTH - 1) * GRID_SIZE,
+        #         randint(0, GRID_HEIGHT - 1) * GRID_SIZE
+        #     )
+        #     if self.position not in self.occupied:
+        #         break
 
 
 class Snake(GameObject):
@@ -94,24 +112,21 @@ class Snake(GameObject):
         self.last = None
         self.head_color = head_color
 
-    def draw(self, surface):
+    def draw(self):
         """Отрисовать"""
         # Головоу змейки красим в темно-зеленый цвет
-        GameObject.draw_rect((self.positions[0]), self.head_color, surface)
+        self.draw_rect((self.positions[0]), self.head_color)
 
         # Остальное тело окрашиваем в светло-зеленый
         for position in self.positions[1:]:
-            GameObject.draw_rect(
-                (position[0], position[1]), self.body_color, surface
+            self.draw_rect(
+                (position[0], position[1]), self.body_color
             )
 
         # Затирание последнего сегмента
         if self.last:
-            GameObject.draw_rect(
-                (self.last[0], self.last[1]),
-                BOARD_BACKGROUND_COLOR,
-                surface,
-                False
+            self.draw_rect(
+                (self.last[0], self.last[1]), BOARD_BACKGROUND_COLOR
             )
 
     def predict_move(self):
@@ -132,9 +147,16 @@ class Snake(GameObject):
         if self.get_head_position() != apple_position:
             self.last = self.positions.pop()
 
-    def update_direction(self):
+    def update_direction(self, event_key):
         """Обновление направления после нажатия на кнопку"""
-        pass
+        if event_key == pg.K_UP and self.direction != DOWN:
+            self.direction = UP
+        elif event_key == pg.K_DOWN and self.direction != UP:
+            self.direction = DOWN
+        elif event_key == pg.K_LEFT and self.direction != RIGHT:
+            self.direction = LEFT
+        elif event_key == pg.K_RIGHT and self.direction != LEFT:
+            self.direction = RIGHT
 
     def get_head_position(self):
         """Получить координаты головы"""
@@ -154,19 +176,19 @@ class Stone(GameObject):
     def __init__(self, body_color=STONE_COLOR):
         super().__init__(body_color)
 
-    def draw(self, surface):
+    def draw(self):
         """Отрисовать"""
-        GameObject.draw_rect(
-            (self.position[0], self.position[1]), self.body_color, surface
+        self.draw_rect(
+            (self.position[0], self.position[1]), self.body_color
         )
 
-    def randomize_position(self, snake_positions, apple_position):
+    def randomize_position(self):
         """Создать случайную позицию для камня"""
         available_rects = []
         for row in range(SCREEN_WIDTH // GRID_SIZE):
             for col in range(SCREEN_HEIGHT // GRID_SIZE):
                 rect = (row * GRID_SIZE, col * GRID_SIZE)
-                if rect not in snake_positions and rect != apple_position:
+                if rect not in self.occupied:
                     available_rects.append((row * GRID_SIZE, col * GRID_SIZE))
 
         self.position = choice(available_rects)
@@ -180,25 +202,19 @@ class BadFood(GameObject):
     def __init__(self, body_color=BAD_FOOD_COLOR):
         super().__init__(body_color)
 
-    def draw(self, surface):
+    def draw(self):
         """Отрисовать"""
-        GameObject.draw_rect(
-            (self.position[0], self.position[1]), self.body_color, surface
+        self.draw_rect(
+            (self.position[0], self.position[1]), self.body_color
         )
 
-    def randomize_position(
-            self,
-            snake_positions,
-            apple_position,
-            stone_position
-    ):
+    def randomize_position(self):
         """Создать случайную позицию для плохой еды"""
         available_rects = []
         for row in range(SCREEN_WIDTH // GRID_SIZE):
             for col in range(SCREEN_HEIGHT // GRID_SIZE):
                 rect = (row * GRID_SIZE, col * GRID_SIZE)
-                if (rect not in snake_positions
-                        and rect != apple_position and rect != stone_position):
+                if rect not in self.occupied:
                     available_rects.append((row * GRID_SIZE, col * GRID_SIZE))
 
         self.position = choice(available_rects)
@@ -211,15 +227,7 @@ def handle_keys(game_object):
             pg.quit()
             raise SystemExit
         elif event.type == pg.KEYDOWN:
-            print(event.key)
-            if event.key == pg.K_UP and game_object.direction != DOWN:
-                game_object.direction = UP
-            elif event.key == pg.K_DOWN and game_object.direction != UP:
-                game_object.direction = DOWN
-            elif event.key == pg.K_LEFT and game_object.direction != RIGHT:
-                game_object.direction = LEFT
-            elif event.key == pg.K_RIGHT and game_object.direction != LEFT:
-                game_object.direction = RIGHT
+            game_object.update_direction(event.key)
 
 
 def main():
@@ -231,15 +239,37 @@ def main():
     stone = Stone()
     bad_food = BadFood()
 
-    apple.randomize_position(snake.positions)
-    stone.randomize_position(snake.positions, apple.position)
-    bad_food.randomize_position(
+    GameObject.refresh_occupied(
+        GameObject(),
         snake.positions,
         apple.position,
-        stone.position
+        stone.position,
+        bad_food.position
     )
 
-    stone.draw(screen)
+    apple.randomize_position()
+
+    GameObject.refresh_occupied(
+        GameObject(),
+        snake.positions,
+        apple.position,
+        stone.position,
+        bad_food.position
+    )
+
+    stone.randomize_position()
+
+    GameObject.refresh_occupied(
+        GameObject(),
+        snake.positions,
+        apple.position,
+        stone.position,
+        bad_food.position
+    )
+
+    bad_food.randomize_position()
+
+    stone.draw()
 
     while True:
         clock.tick(SPEED)
@@ -248,27 +278,31 @@ def main():
 
         snake.move(apple.position, bad_food.position)
 
-        if snake.get_head_position() in snake.positions[4:] \
-                or snake.get_head_position() == stone.position:
+        GameObject.refresh_occupied(
+            GameObject(),
+            snake.positions,
+            apple.position,
+            stone.position,
+            bad_food.position
+        )
+
+        if (snake.get_head_position() in snake.positions[4:]
+                or snake.get_head_position() == stone.position):
             snake.reset()
-            stone.draw(screen)
+            stone.draw()
 
         if snake.get_head_position() == apple.position:
-            apple.randomize_position(snake.positions)
+            apple.randomize_position()
 
         if snake.get_head_position() == bad_food.position:
-            bad_food.randomize_position(
-                snake.positions,
-                apple.position,
-                stone.position
-            )
+            bad_food.randomize_position()
 
             if len(snake.positions) > 1:
                 snake.positions.pop(0)
 
-        apple.draw(screen)
-        snake.draw(screen)
-        bad_food.draw(screen)
+        apple.draw()
+        snake.draw()
+        bad_food.draw()
 
         pg.display.update()
 
